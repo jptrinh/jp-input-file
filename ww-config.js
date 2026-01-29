@@ -6,8 +6,8 @@ export default {
         customSettingsPropertiesOrder: [
             // UX properties
             'type',
-            'reorder',
             'drop',
+            'reorder',
             'maxFileSize',
             'minFileSize',
             'maxTotalFileSize',
@@ -19,144 +19,22 @@ export default {
             'exposeBase64',
             'exposeBinary',
             ['formInfobox', 'fieldName', 'customValidation', 'validation'],
-        ],
-        customStylePropertiesOrder: [
-            // Dropzone properties
+            // Error messages
             {
-                label: "Dropzone",
+                label: 'Error messages',
                 isCollapsible: true,
                 properties: [
-                    'dropzoneBorderColor',
-                    'dropzoneBorderStyle',
-                    'dropzoneBorderWidth',
-                    'dropzoneBorderRadius',
-                    'dropzoneBackground',
-                    'dropzoneBackgroundHover',
-                    'dropzoneBackgroundDragging',
-                    'dropzonePadding',
-                    'dropzoneMinHeight',
-                ],
-            },
-            // Icon properties
-            {
-                label: "Icon",
-                isCollapsible: true,
-                properties: [
-                    'showUploadIcon',
-                    'uploadIcon',
-                    'uploadIconColor',
-                    'uploadIconSize',
-                    'uploadIconMargin',
-                    'uploadIconPosition',
-                ],
-            },
-            // Label properties
-            {
-                label: "Label",
-                isCollapsible: true,
-                properties: [
-                    'labelMessage',
-                    'labelFontFamily',
-                    'labelFontSize',
-                    'labelFontWeight',
-                    'labelColor',
-                    'labelMargin',
-                ],
-            },
-            // Info messages properties
-            {
-                label: "Info messages",
-                isCollapsible: true,
-                properties: [
-                    'extensionsMessage',
-                    'extensionsMessageFontFamily',
-                    'extensionsMessageFontSize',
-                    'extensionsMessageFontWeight',
-                    'extensionsMessageColor',
-                    'extensionsMessageMargin',
-                    'maxFileMessage',
-                    'maxFileMessageFontFamily',
-                    'maxFileMessageFontSize',
-                    'maxFileMessageFontWeight',
-                    'maxFileMessageColor',
-                    'maxFileMessageMargin',
-                ],
-            },
-            // File list properties
-            {
-                label: "File list",
-                isCollapsible: true,
-                properties: [
-                    'fileListTitle',
-                    'fileItemBackground',
-                    'fileItemBorderColor',
-                    'fileItemBorderRadius',
-                    'fileItemPadding',
-                    'fileItemMargin',
-                    'fileItemShadow',
-                    'progressBarColor',
-                    'progressBarColorWarning',
-                ],
-            },
-            {
-                label: "File item hover states",
-                isCollapsible: true,
-                properties: [
-                    'fileItemHoverBorderColor',
-                    'fileItemHoverBackground',
-                    'fileItemHoverShadow',
-                ],
-            },
-            // File details properties
-            {
-                label: "File name",
-                isCollapsible: true,
-                properties: [
-                    'fileNameFontFamily',
-                    'fileNameFontSize',
-                    'fileNameFontWeight',
-                    'fileNameColor',
-                ],
-            },
-            {
-                label: "File details",
-                isCollapsible: true,
-                properties: [
-                    'showFileInfo',
-                    'fileDetailsFontFamily',
-                    'fileDetailsFontSize',
-                    'fileDetailsFontWeight',
-                    'fileDetailsColor',
-                ],
-            }, 
-            // Action buttons properties
-            {
-                label: "Remove buttons",
-                isCollapsible: true,
-                properties:  [
-                    'actionButtonSize',
-                    'actionButtonBackground',
-                    'actionButtonHoverBackground',
-                    'actionButtonColor',
-                    'actionButtonBorderColor',
-                    'actionButtonHoverBorderColor',
-                    'actionButtonBorderRadius',
-                    'actionButtonMargin',
-                ],
-            },
-            // Circle animation properties
-            {
-                label: "Drag & drop animation",
-                isCollapsible: true,
-                properties: [
-                    'enableCircleAnimation',
-                    'circleSize',
-                    'circleColor',
-                    'circleOpacity',
-                    'animationSpeed',
+                    'errorMsgMultipleFiles',
+                    'errorMsgMaxFilesReached',
+                    'errorMsgTooManyFiles',
+                    'errorMsgFileTooSmall',
+                    'errorMsgFileTooLarge',
+                    'errorMsgTotalSizeExceeded',
+                    'errorMsgInvalidType',
                 ],
             },
         ],
+        customStylePropertiesOrder: [],
         hint: (_, sidePanelContent) => {
             if (!sidePanelContent.parentSelection) return null;
             const { header, text, button, args } = sidePanelContent.parentSelection;
@@ -173,9 +51,9 @@ export default {
             }));
         },
     },
+    states: ['dragging'],
     options: {
         displayAllowedValues: ['flex', 'inline-flex', 'block'],
-        icons: ['lucide/trash'],
     },
     triggerEvents: [
         {
@@ -183,11 +61,6 @@ export default {
             label: { en: 'On change' },
             event: { value: [] },
             default: true,
-        },
-        {
-            name: 'initValueChange',
-            label: { en: 'On init value change' },
-            event: { value: [] },
         },
         {
             name: 'error',
@@ -202,10 +75,52 @@ export default {
         {
             label: { en: 'Clear Files' },
             action: 'clearFiles',
-            args: [],
+        },
+        {
+            label: { en: 'Clear Error' },
+            action: 'clearError',
+        },
+        {
+            label: { en: 'Remove File' },
+            action: 'removeFile',
+            args: [
+                {
+                    name: 'index',
+                    type: 'Number',
+                    label: { en: 'File index' },
+                },
+            ],
+        },
+        {
+            label: { en: 'Reorder Files' },
+            action: 'reorderFiles',
+            args: [
+                {
+                    name: 'fromIndex',
+                    type: 'Number',
+                    label: { en: 'From index' },
+                },
+                {
+                    name: 'toIndex',
+                    type: 'Number',
+                    label: { en: 'To index' },
+                },
+            ],
         },
     ],
     properties: {
+        // ======== DROPZONE CONTENT (wwLayout) ========
+        dropzoneContent: {
+            hidden: true,
+            defaultValue: [],
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'array',
+                tooltip: 'Array of elements to display in the dropzone area',
+            },
+            /* wwEditor:end */
+        },
+
         type: {
             label: { en: 'Upload type' },
             type: 'TextSelect',
@@ -236,6 +151,20 @@ export default {
             bindingValidation: {
                 type: 'boolean',
                 tooltip: 'A boolean that defines if drag and drop is enabled: `true | false`',
+            },
+            /* wwEditor:end */
+        },
+        reorder: {
+            label: { en: 'Allow reorder' },
+            type: 'OnOff',
+            section: 'settings',
+            defaultValue: false,
+            hidden: content => content.type !== 'multi',
+            bindable: true,
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'boolean',
+                tooltip: 'A boolean that defines if files can be reordered: `true | false`',
             },
             /* wwEditor:end */
         },
@@ -296,12 +225,6 @@ export default {
                 tooltip: 'A number that defines the maximum number of files allowed: `10`',
             },
             /* wwEditor:end */
-        },
-        showFileInfo: {
-            label: { en: 'Show file details' },
-            type: 'OnOff',
-            defaultValue: true,
-            bindable: true,
         },
         required: {
             label: { en: 'Required' },
@@ -406,865 +329,112 @@ export default {
             /* wwEditor:end */
         },
 
-        // ======== DROPZONE PROPERTIES ========
-        dropzoneBorderColor: {
-            label: { en: 'Border color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#CCCCCC',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        dropzoneBorderStyle: {
-            label: { en: 'Border style' },
-            type: 'TextSelect',
-            section: 'style',
-            options: {
-                options: [
-                    { value: 'solid', label: 'Solid' },
-                    { value: 'dashed', label: 'Dashed' },
-                    { value: 'dotted', label: 'Dotted' },
-                    { value: 'none', label: 'None' },
-                ],
-            },
-            defaultValue: 'dashed',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        dropzoneBorderWidth: {
-            label: { en: 'Border width' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [{ value: 'px', label: 'px', min: 0, max: 10 }],
-            },
-            defaultValue: '2px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        dropzoneBorderRadius: {
-            label: { en: 'Border radius' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [
-                    { value: 'px', label: 'px', min: 0, max: 100 },
-                    { value: '%', label: '%', min: 0, max: 50 },
-                ],
-            },
-            defaultValue: '8px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        dropzoneBackground: {
-            label: { en: 'Background color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: 'rgba(0, 0, 0, 0.01)',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        dropzoneBackgroundHover: {
-            label: { en: 'Background color hover' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: 'rgba(0, 0, 0, 0.01)',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        dropzoneBackgroundDragging: {
-            label: { en: 'Background color dragging' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: 'rgba(0, 0, 0, 0.05)',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        dropzonePadding: {
-            label: { en: 'Padding' },
-            type: 'Spacing',
-            section: 'style',
-            defaultValue: '20px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        dropzoneMinHeight: {
-            label: { en: 'Min height' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [
-                    { value: 'px', label: 'px', min: 0, max: 500 },
-                    { value: 'vh', label: 'vh', min: 0, max: 100 },
-                ],
-            },
-            defaultValue: '120px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-
-        // ======== ICON PROPERTIES ========
-        showUploadIcon: {
-            label: { en: 'Show upload icon' },
-            type: 'OnOff',
-            section: 'icon',
-            defaultValue: true,
-            bindable: true,
-            /* wwEditor:start */
-            bindingValidation: {
-                type: 'boolean',
-                tooltip: 'A boolean that defines if the upload icon should be displayed: `true | false`',
-            },
-            /* wwEditor:end */
-        },
-        uploadIcon: {
-            label: { en: 'Upload icon' },
-            type: 'SystemIcon',
-            section: 'icon',
-            defaultValue: 'upload',
-            bindable: true,
-            hidden: content => !content.showUploadIcon,
-            /* wwEditor:start */
-            bindingValidation: {
-                type: 'string',
-                tooltip: 'A string that defines the upload icon code',
-            },
-            /* wwEditor:end */
-        },
-        uploadIconPosition: {
-            label: { en: 'Icon position' },
-            type: 'TextSelect',
-            options: {
-                options: [
-                    { value: 'top', label: { en: 'Top' } },
-                    { value: 'right', label: { en: 'Right' } },
-                    { value: 'bottom', label: { en: 'Bottom' } },
-                    { value: 'left', label: { en: 'Left' } },
-                ],
-            },
-            section: 'icon',
-            defaultValue: 'top',
-            hidden: content => !content.showUploadIcon,
-            bindable: true,
-            /* wwEditor:start */
-            bindingValidation: {
-                type: 'string',
-                enum: ['top', 'right', 'bottom', 'left'],
-                tooltip:
-                    'A string that defines the position of the icon relative to the text: `"top" | "right" | "bottom" | "left"`',
-            },
-            /* wwEditor:end */
-        },
-        uploadIconColor: {
-            label: { en: 'Icon color' },
-            type: 'Color',
-            section: 'icon',
-            defaultValue: '#666666',
-            bindable: true,
-            hidden: content => !content.showUploadIcon,
-            options: {
-                nullable: true,
-            },
-            /* wwEditor:start */
-            bindingValidation: {
-                type: 'string',
-                tooltip: 'The color of the icon',
-            },
-            /* wwEditor:end */
-        },
-        uploadIconSize: {
-            label: { en: 'Size' },
-            type: 'Length',
-            section: 'icon',
-            options: {
-                unitChoices: [
-                    { value: 'px', label: 'px', min: 12, max: 100 },
-                    { value: 'em', label: 'em', min: 0.5, max: 6 },
-                    { value: 'rem', label: 'rem', min: 0.5, max: 6 },
-                ],
-            },
-            defaultValue: '24px',
-            classes: true,
-            states: true,
-            responsive: true,
-            hidden: content => !content.showUploadIcon,
-            bindable: true,
-        },
-        uploadIconMargin: {
-            label: { en: 'Margin' },
-            type: 'Spacing',
-            section: 'icon',
-            defaultValue: '8px',
-            classes: true,
-            states: true,
-            responsive: true,
-            hidden: content => !content.showUploadIcon,
-            bindable: true,
-        },
-
-        // ======== LABEL PROPERTIES ========
-        labelMessage: {
-            label: { en: 'Label' },
+        // ======== ERROR MESSAGE PROPERTIES ========
+        errorMsgMultipleFiles: {
+            label: { en: 'Multiple files in single mode' },
             type: 'Text',
-            defaultValue: 'Drop files here or click to upload',
+            section: 'settings',
+            options: { placeholder: 'Multiple files provided in single file mode' },
+            defaultValue: 'Multiple files provided in single file mode',
             bindable: true,
+            hidden: content => content.type !== 'single',
             /* wwEditor:start */
             bindingValidation: {
                 type: 'string',
-                tooltip: 'A string that defines the label message: `"Drop files here or click to upload"`',
+                tooltip: 'Error message when multiple files are dropped in single file mode',
             },
             /* wwEditor:end */
         },
-        labelFontFamily: {
-            label: { en: 'Font family' },
-            type: 'FontFamily',
-            section: 'style',
-            defaultValue: null,
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        labelFontSize: {
-            label: { en: 'Font size' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [
-                    { value: 'px', label: 'px', min: 8, max: 64 },
-                    { value: 'em', label: 'em', min: 0.5, max: 4 },
-                    { value: 'rem', label: 'rem', min: 0.5, max: 4 },
-                ],
-            },
-            defaultValue: '16px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        labelFontWeight: {
-            label: { en: 'Font weight' },
-            type: 'TextSelect',
-            section: 'style',
-            options: {
-                options: [
-                    { value: null, label: { en: 'Default' } },
-                    { value: 300, label: { en: '300 - Light' } },
-                    { value: 400, label: { en: '400 - Regular' } },
-                    { value: 500, label: { en: '500 - Medium' } },
-                    { value: 600, label: { en: '600 - Semi Bold' } },
-                    { value: 700, label: { en: '700 - Bold' } },
-                ],
-            },
-            defaultValue: null,
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        labelColor: {
-            label: { en: 'Color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#333333',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        labelMargin: {
-            label: { en: 'Margin' },
-            type: 'Spacing',
-            section: 'style',
-            defaultValue: '0 0 4px 0',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-
-        // ======== INFO MESSAGES PROPERTIES ========
-        extensionsMessage: {
-            label: { en: 'Extensions message' },
+        errorMsgMaxFilesReached: {
+            label: { en: 'Max files reached' },
             type: 'Text',
-            defaultValue: 'Allowed file types: {extensions}',
+            section: 'settings',
+            options: { placeholder: 'Maximum number of files ({max}) reached' },
+            defaultValue: 'Maximum number of files ({max}) reached',
             bindable: true,
+            hidden: content => content.type !== 'multi',
             /* wwEditor:start */
             bindingValidation: {
                 type: 'string',
-                tooltip:
-                    'A string that defines the message to display when an invalid file type is uploaded: `"Allowed file types: {extensions}"`',
+                tooltip: 'Error message when max files limit is reached. Use {max} for the limit value.',
             },
             /* wwEditor:end */
         },
-        extensionsMessageFontFamily: {
-            label: { en: 'Extensions message font family' },
-            type: 'FontFamily',
-            section: 'style',
-            defaultValue: null,
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        extensionsMessageFontSize: {
-            label: { en: 'Extensions message font size' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [
-                    { value: 'px', label: 'px', min: 8, max: 64 },
-                    { value: 'em', label: 'em', min: 0.5, max: 4 },
-                    { value: 'rem', label: 'rem', min: 0.5, max: 4 },
-                ],
-            },
-            defaultValue: '12px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        extensionsMessageFontWeight: {
-            label: { en: 'Extensions message font weight' },
-            type: 'TextSelect',
-            section: 'style',
-            options: {
-                options: [
-                    { value: null, label: { en: 'Default' } },
-                    { value: 300, label: { en: '300 - Light' } },
-                    { value: 400, label: { en: '400 - Regular' } },
-                    { value: 500, label: { en: '500 - Medium' } },
-                    { value: 600, label: { en: '600 - Semi Bold' } },
-                    { value: 700, label: { en: '700 - Bold' } },
-                ],
-            },
-            defaultValue: 400,
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        extensionsMessageColor: {
-            label: { en: 'Extensions message color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#888888',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        extensionsMessageMargin: {
-            label: { en: 'Extensions message margin' },
-            type: 'Spacing',
-            section: 'style',
-            defaultValue: '0 0 4px 0',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        maxFileMessage: {
-            label: { en: 'Max file message' },
+        errorMsgTooManyFiles: {
+            label: { en: 'Too many files' },
             type: 'Text',
-            defaultValue: 'Max file size: {maxFileSize} MB',
+            section: 'settings',
+            options: { placeholder: 'Only {available} more file(s) can be added' },
+            defaultValue: 'Only {available} more file(s) can be added',
+            bindable: true,
+            hidden: content => content.type !== 'multi',
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'string',
+                tooltip: 'Error message when too many files are selected. Use {available} for remaining slots.',
+            },
+            /* wwEditor:end */
+        },
+        errorMsgFileTooSmall: {
+            label: { en: 'File too small' },
+            type: 'Text',
+            section: 'settings',
+            options: { placeholder: 'File size ({size} MB) is below minimum ({min} MB)' },
+            defaultValue: 'File size ({size} MB) is below minimum ({min} MB)',
+            bindable: true,
+            hidden: content => !content.minFileSize || content.minFileSize <= 0,
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'string',
+                tooltip: 'Error message when file is too small. Use {size} for file size, {min} for minimum.',
+            },
+            /* wwEditor:end */
+        },
+        errorMsgFileTooLarge: {
+            label: { en: 'File too large' },
+            type: 'Text',
+            section: 'settings',
+            options: { placeholder: 'File size ({size} MB) exceeds maximum ({max} MB)' },
+            defaultValue: 'File size ({size} MB) exceeds maximum ({max} MB)',
             bindable: true,
             /* wwEditor:start */
             bindingValidation: {
                 type: 'string',
-                tooltip: 'A string that defines the max file message: `"Max file size: {maxFileSize} MB"`',
+                tooltip: 'Error message when file is too large. Use {size} for file size, {max} for maximum.',
             },
             /* wwEditor:end */
         },
-        maxFileMessageFontFamily: {
-            label: { en: 'Max file message font family' },
-            type: 'FontFamily',
-            section: 'style',
-            defaultValue: null,
-            classes: true,
-            states: true,
-            responsive: true,
+        errorMsgTotalSizeExceeded: {
+            label: { en: 'Total size exceeded' },
+            type: 'Text',
+            section: 'settings',
+            options: { placeholder: 'Total size ({total} MB) exceeds maximum ({max} MB)' },
+            defaultValue: 'Total size ({total} MB) exceeds maximum ({max} MB)',
             bindable: true,
-        },
-        maxFileMessageFontSize: {
-            label: { en: 'Max file message font size' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [
-                    { value: 'px', label: 'px', min: 8, max: 64 },
-                    { value: 'em', label: 'em', min: 0.5, max: 4 },
-                    { value: 'rem', label: 'rem', min: 0.5, max: 4 },
-                ],
-            },
-            defaultValue: '12px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        maxFileMessageFontWeight: {
-            label: { en: 'Max file message font weight' },
-            type: 'TextSelect',
-            section: 'style',
-            options: {
-                options: [
-                    { value: null, label: { en: 'Default' } },
-                    { value: 300, label: { en: '300 - Light' } },
-                    { value: 400, label: { en: '400 - Regular' } },
-                    { value: 500, label: { en: '500 - Medium' } },
-                    { value: 600, label: { en: '600 - Semi Bold' } },
-                    { value: 700, label: { en: '700 - Bold' } },
-                ],
-            },
-            defaultValue: 400,
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        maxFileMessageColor: {
-            label: { en: 'Max file message color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#888888',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        maxFileMessageMargin: {
-            label: { en: 'Max file message margin' },
-            type: 'Spacing',
-            section: 'style',
-            defaultValue: '0 0 4px 0',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-
-        // ======== FILE LIST PROPERTIES ========
-        fileItemBackground: {
-            label: { en: 'Background color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#FFFFFF',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileItemBorderColor: {
-            label: { en: 'Border color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#EEEEEE',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileItemBorderRadius: {
-            label: { en: 'Border radius' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [
-                    { value: 'px', label: 'px', min: 0, max: 100 },
-                    { value: '%', label: '%', min: 0, max: 50 },
-                ],
-            },
-            defaultValue: '6px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileItemPadding: {
-            label: { en: 'Padding' },
-            type: 'Spacing',
-            section: 'style',
-            defaultValue: '12px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileItemMargin: {
-            label: { en: 'Margin' },
-            type: 'Spacing',
-            section: 'style',
-            defaultValue: '0 0 8px 0',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileItemShadow: {
-            label: { en: 'Shadow' },
-            type: 'Shadows',
-            section: 'style',
-            defaultValue: '0 2px 4px rgba(0, 0, 0, 0.05)',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        progressBarColor: {
-            label: { en: 'Progress bar color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#4CAF50',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        progressBarColorWarning: {
-            type: 'InfoBox',
-            options: {
-                variant: 'warning',
-                content: "The progress bar is only compatible with the WeWeb's upload file action.",
-            },
-            editorOnly: true,
-        },
-        fileItemHoverBorderColor: {
-            label: { en: 'Hover border color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#DDDDDD',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileItemHoverBackground: {
-            label: { en: 'Hover background color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#FFFFFF',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileItemHoverShadow: {
-            label: { en: 'Hover shadow' },
-            type: 'Shadows',
-            section: 'style',
-            defaultValue: '0 2px 4px rgba(0, 0, 0, 0.05)',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-
-        // ======== FILE DETAILS PROPERTIES ========
-        fileNameFontFamily: {
-            label: { en: 'Font family' },
-            type: 'FontFamily',
-            section: 'style',
-            defaultValue: null,
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileNameFontSize: {
-            label: { en: 'Font size' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [
-                    { value: 'px', label: 'px', min: 8, max: 64 },
-                    { value: 'em', label: 'em', min: 0.5, max: 4 },
-                    { value: 'rem', label: 'rem', min: 0.5, max: 4 },
-                ],
-            },
-            defaultValue: '14px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileNameFontWeight: {
-            label: { en: 'Font weight' },
-            type: 'TextSelect',
-            section: 'style',
-            options: {
-                options: [
-                    { value: null, label: { en: 'Default' } },
-                    { value: 300, label: { en: '300 - Light' } },
-                    { value: 400, label: { en: '400 - Regular' } },
-                    { value: 500, label: { en: '500 - Medium' } },
-                    { value: 600, label: { en: '600 - Semi Bold' } },
-                    { value: 700, label: { en: '700 - Bold' } },
-                ],
-            },
-            defaultValue: 500,
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileNameColor: {
-            label: { en: 'Color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#333333',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileDetailsFontFamily: {
-            label: { en: 'Font family' },
-            type: 'FontFamily',
-            section: 'style',
-            defaultValue: null,
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileDetailsFontSize: {
-            label: { en: 'Font size' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [
-                    { value: 'px', label: 'px', min: 8, max: 64 },
-                    { value: 'em', label: 'em', min: 0.5, max: 4 },
-                    { value: 'rem', label: 'rem', min: 0.5, max: 4 },
-                ],
-            },
-            defaultValue: '12px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileDetailsFontWeight: {
-            label: { en: 'Font weight' },
-            type: 'TextSelect',
-            section: 'style',
-            options: {
-                options: [
-                    { value: null, label: { en: 'Default' } },
-                    { value: 300, label: { en: '300 - Light' } },
-                    { value: 400, label: { en: '400 - Regular' } },
-                    { value: 500, label: { en: '500 - Medium' } },
-                    { value: 600, label: { en: '600 - Semi Bold' } },
-                    { value: 700, label: { en: '700 - Bold' } },
-                ],
-            },
-            defaultValue: 400,
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        fileDetailsColor: {
-            label: { en: 'Color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#888888',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-
-        // ======== ACTION BUTTON PROPERTIES ========
-        actionButtonSize: {
-            label: { en: 'Size' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [
-                    { value: 'px', label: 'px', min: 16, max: 64 },
-                    { value: 'em', label: 'em', min: 1, max: 4 },
-                    { value: 'rem', label: 'rem', min: 1, max: 4 },
-                ],
-            },
-            defaultValue: '28px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        actionButtonBackground: {
-            label: { en: 'Background color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#FFFFFF',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        actionButtonHoverBackground: {
-            label: { en: 'Hover background color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#F8F8F8',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        actionButtonColor: {
-            label: { en: 'Icon color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#666666',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        actionButtonBorderColor: {
-            label: { en: 'Border color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#EEEEEE',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        actionButtonHoverBorderColor: {
-            label: { en: 'Hover border color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#DDDDDD',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        actionButtonBorderRadius: {
-            label: { en: 'Border radius' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [
-                    { value: 'px', label: 'px', min: 0, max: 100 },
-                    { value: '%', label: '%', min: 0, max: 50 },
-                ],
-            },
-            defaultValue: '4px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        actionButtonMargin: {
-            label: { en: 'Margin' },
-            type: 'Spacing',
-            section: 'style',
-            defaultValue: '0 0 0 4px',
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-
-        // ======== CIRCLE ANIMATION PROPERTIES ========
-        enableCircleAnimation: {
-            label: { en: 'Enable circle animation' },
-            type: 'OnOff',
-            section: 'style',
-            defaultValue: true,
-            bindable: true,
-            /* wwEditor:start */
-            bindingValidation: {
-                type: 'boolean',
-                tooltip:
-                    'A boolean that defines if the circle animation during drag and drop is enabled: `true | false`',
-            },
-            /* wwEditor:end */
-        },
-        circleSize: {
-            label: { en: 'Circle size' },
-            type: 'Length',
-            section: 'style',
-            options: {
-                unitChoices: [{ value: 'px', label: 'px', min: 20, max: 500 }],
-            },
-            defaultValue: '180px',
-            hidden: content => !content.enableCircleAnimation,
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
-        },
-        circleColor: {
-            label: { en: 'Circle color' },
-            type: 'Color',
-            section: 'style',
-            defaultValue: '#EEEEEE',
-            hidden: content => !content.enableCircleAnimation,
-            classes: true,
-            states: true,
-            responsive: true,
+            hidden: content => content.type !== 'multi',
             /* wwEditor:start */
             bindingValidation: {
                 type: 'string',
-                tooltip: 'The color of the drag and drop circle. If not set, uses the progress bar color.',
+                tooltip: 'Error message when total size exceeds limit. Use {total} for total size, {max} for maximum.',
             },
             /* wwEditor:end */
         },
-        circleOpacity: {
-            label: { en: 'Circle opacity' },
-            type: 'Number',
-            options: { min: 0, max: 1, step: 0.1 },
-            section: 'style',
-            defaultValue: 0.5,
-            hidden: content => !content.enableCircleAnimation,
-            classes: true,
-            states: true,
-            responsive: true,
+        errorMsgInvalidType: {
+            label: { en: 'Invalid file type' },
+            type: 'Text',
+            section: 'settings',
+            options: { placeholder: 'File type "{type}" is not allowed. Accepted: {allowed}' },
+            defaultValue: 'File type "{type}" is not allowed. Accepted: {allowed}',
             bindable: true,
-        },
-        animationSpeed: {
-            label: { en: 'Animation speed' },
-            type: 'Number',
-            options: { min: 0.1, max: 2, step: 0.1 },
-            section: 'style',
-            defaultValue: 0.5, // Half speed by default
-            hidden: content => !content.enableCircleAnimation,
-            classes: true,
-            states: true,
-            responsive: true,
-            bindable: true,
+            hidden: content => content.extensions === 'any',
             /* wwEditor:start */
             bindingValidation: {
-                type: 'number',
-                tooltip:
-                    'Controls the speed of the drag and drop animation (0.5 = half speed, 1 = normal, 2 = double speed)',
+                type: 'string',
+                tooltip: 'Error message for invalid file type. Use {type} for file type, {allowed} for accepted types.',
             },
             /* wwEditor:end */
         },
+
         // FORM PROPERTIES: Mainly used in the sidepanel for UX purposes
         /* wwEditor:start */
         parentSelection: {
