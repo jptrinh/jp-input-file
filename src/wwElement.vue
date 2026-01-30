@@ -112,13 +112,49 @@ export default {
                 : props.wwElementState.props.readonly;
         });
 
-        const { value: files, setValue: setFiles } = wwLib.wwVariable.useComponentVariable({
+        // Internal variable for the structured data
+        const { value: componentData, setValue: setComponentData } = wwLib.wwVariable.useComponentVariable({
             uid: props.uid,
             name: 'value',
-            defaultValue: [],
-            type: 'file',
+            defaultValue: {
+                existingImages: [],
+                newFiles: [],
+                deletedImages: [],
+                allFiles: [],
+            },
+            type: 'object',
             componentType: 'element',
         });
+
+        // Helper to safely get component data parts
+        const existingImages = computed(() => componentData.value?.existingImages || []);
+        const newFiles = computed(() => componentData.value?.newFiles || []);
+        const deletedImages = computed(() => componentData.value?.deletedImages || []);
+        const allFiles = computed(() => componentData.value?.allFiles || []);
+
+        // Track the last initialValue to avoid unnecessary resets
+        const lastInitialValue = ref(null);
+
+        // Watch for initialValue changes and reset existingImages only when it actually changes
+        watch(
+            () => props.content?.initialValue,
+            newInitialValue => {
+                const initialArray = Array.isArray(newInitialValue) ? newInitialValue : [];
+                const serialized = JSON.stringify(initialArray);
+
+                // Only reset if initialValue actually changed
+                if (serialized !== lastInitialValue.value) {
+                    lastInitialValue.value = serialized;
+                    setComponentData({
+                        existingImages: initialArray,
+                        newFiles: [],
+                        deletedImages: [],
+                        allFiles: initialArray,
+                    });
+                }
+            },
+            { immediate: true }
+        );
 
         const { value: status, setValue: setStatus } = wwLib.wwVariable.useComponentVariable({
             uid: props.uid,
@@ -135,17 +171,18 @@ export default {
         const customValidation = computed(() => props.content.customValidation);
 
         useForm(
-            files,
+            componentData,
             { fieldName, validation, customValidation, required },
-            { elementState: props.wwElementState, emit, sidepanelFormPath: 'form', setValue: setFiles }
+            { elementState: props.wwElementState, emit, sidepanelFormPath: 'form', setValue: setComponentData }
         );
 
-        const fileList = computed(() => (Array.isArray(files.value) ? files.value : []));
+        // Combined list of all files (existing + new) for display purposes
+        const fileList = computed(() => [...existingImages.value, ...newFiles.value]);
         const hasFiles = computed(() => fileList.value.length > 0);
 
-        watch([status, fileList], ([newStatus, newFiles]) => {
+        watch([status, fileList], ([newStatus, allFiles]) => {
             if (newStatus && typeof newStatus === 'object') {
-                const fileNames = newFiles.map(file => file.name);
+                const fileNames = allFiles.map(file => file.name).filter(Boolean);
                 const updatedStatus = Object.fromEntries(
                     Object.entries(newStatus).filter(([key]) => fileNames.includes(key))
                 );
@@ -181,29 +218,32 @@ export default {
             }
         });
 
+        // Helper to serialize file objects for local context
+        const serializeFile = file => {
+            if (!file) return null;
+            const plainObject = {};
+            for (const key in file) {
+                if (Object.prototype.hasOwnProperty.call(file, key)) {
+                    plainObject[key] = file[key];
+                }
+            }
+            if (file.name) plainObject.name = file.name;
+            if (file.size) plainObject.size = file.size;
+            if (file.type) plainObject.type = file.type;
+            if (file.lastModified) plainObject.lastModified = file.lastModified;
+            if (file.mimeType) plainObject.mimeType = file.mimeType;
+            if (file.id) plainObject.id = file.id;
+            if (file.base64) plainObject.base64 = file.base64;
+            if (file.binary) plainObject.binary = file.binary;
+            return plainObject;
+        };
+
         const localData = ref({
             fileUpload: {
-                value: computed(() => {
-                    return fileList.value.map(file => {
-                        const plainObject = {};
-                        for (const key in file) {
-                            if (Object.prototype.hasOwnProperty.call(file, key)) {
-                                plainObject[key] = file[key];
-                            }
-                        }
-                        plainObject.name = file.name;
-                        plainObject.size = file.size;
-                        plainObject.type = file.type;
-                        plainObject.lastModified = file.lastModified;
-                        plainObject.mimeType = file.mimeType;
-                        plainObject.id = file.id;
-
-                        if (file.base64) plainObject.base64 = file.base64;
-                        if (file.binary) plainObject.binary = file.binary;
-
-                        return plainObject;
-                    });
-                }),
+                existingImages: computed(() => existingImages.value),
+                newFiles: computed(() => newFiles.value.map(serializeFile)),
+                deletedImages: computed(() => deletedImages.value),
+                allFiles: computed(() => [...existingImages.value, ...newFiles.value.map(serializeFile)]),
                 status: status,
                 error: lastError,
             },
@@ -211,6 +251,10 @@ export default {
 
         provide('_wwFileUpload', {
             files: fileList,
+            existingImages,
+            newFiles,
+            deletedImages,
+            allFiles,
             status: status,
             acceptedTypes: acceptedFileTypes,
             isDisabled,
@@ -279,12 +323,20 @@ export default {
                 }
 
                 filesToProcess.splice(1);
-                setFiles([]);
+                // Clear existing files when in single mode
+                const updatedDeletedImages = [...deletedImages.value, ...existingImages.value];
+                setComponentData({
+                    existingImages: [],
+                    newFiles: [],
+                    deletedImages: updatedDeletedImages,
+                    allFiles: [],
+                });
             }
 
             let availableSlots = Infinity;
+            const currentFileCount = existingImages.value.length + newFiles.value.length;
             if (type.value === 'multi' && maxFiles.value > 0) {
-                availableSlots = maxFiles.value - files.value.length;
+                availableSlots = maxFiles.value - currentFileCount;
                 if (availableSlots <= 0) {
                     const message = formatMessage(errorMessages.value.maxFilesReached, {
                         max: maxFiles.value,
@@ -294,7 +346,7 @@ export default {
                         message,
                         data: {
                             maxFiles: maxFiles.value,
-                            currentCount: files.value.length,
+                            currentCount: currentFileCount,
                         },
                     };
                     lastError.value = errorData;
@@ -320,7 +372,7 @@ export default {
                             providedCount: filesToProcess.length,
                             availableSlots: availableSlots,
                             maxFiles: maxFiles.value,
-                            currentCount: files.value.length,
+                            currentCount: currentFileCount,
                         },
                     };
                     lastError.value = errorData;
@@ -335,11 +387,9 @@ export default {
             const limitedFiles = filesToProcess.slice(0, availableSlots);
             const processedFiles = [];
 
-            // Only calculate currentTotalSize for multi-file mode
+            // Only calculate currentTotalSize for multi-file mode (only new files have size)
             const currentTotalSize =
-                type.value === 'multi' && Array.isArray(files.value)
-                    ? files.value.reduce((sum, f) => sum + (f.size || 0), 0)
-                    : 0;
+                type.value === 'multi' ? newFiles.value.reduce((sum, f) => sum + (f.size || 0), 0) : 0;
 
             for (const file of limitedFiles) {
                 const validationResult = validateFile(file, {
@@ -417,25 +467,37 @@ export default {
 
             if (processedFiles.length > 0) {
                 if (type.value === 'single') {
-                    setFiles(processedFiles);
+                    const newData = {
+                        existingImages: [],
+                        newFiles: processedFiles,
+                        deletedImages: [...deletedImages.value, ...existingImages.value],
+                        allFiles: processedFiles,
+                    };
+                    setComponentData(newData);
                     emit('trigger-event', {
                         name: 'change',
-                        event: { value: processedFiles },
+                        event: { value: newData },
                     });
                 } else {
-                    const currentFiles = [...files.value];
-                    let newFiles = [...currentFiles];
+                    const currentNewFiles = [...newFiles.value];
+                    let updatedNewFiles = [...currentNewFiles];
 
                     const addNextFile = index => {
-                        newFiles = [...newFiles, processedFiles[index]];
-                        setFiles(newFiles);
+                        updatedNewFiles = [...updatedNewFiles, processedFiles[index]];
+                        const newData = {
+                            existingImages: existingImages.value,
+                            newFiles: updatedNewFiles,
+                            deletedImages: deletedImages.value,
+                            allFiles: [...existingImages.value, ...updatedNewFiles],
+                        };
+                        setComponentData(newData);
 
                         if (index < processedFiles.length - 1) {
                             setTimeout(() => addNextFile(index + 1), 150);
                         } else {
                             emit('trigger-event', {
                                 name: 'change',
-                                event: { value: newFiles },
+                                event: { value: newData },
                             });
                         }
                     };
@@ -449,31 +511,80 @@ export default {
         const removeFile = index => {
             if (isDisabled.value || isReadonly.value) return;
 
-            const updatedFiles = [...files.value.filter((_, i) => i !== index)];
-            setFiles(updatedFiles);
+            const existingCount = existingImages.value.length;
+            let newData;
+
+            if (index < existingCount) {
+                // Removing an existing image - add to deletedImages
+                const removedImage = existingImages.value[index];
+                const updatedExisting = existingImages.value.filter((_, i) => i !== index);
+                newData = {
+                    existingImages: updatedExisting,
+                    newFiles: newFiles.value,
+                    deletedImages: [...deletedImages.value, removedImage],
+                    allFiles: [...updatedExisting, ...newFiles.value],
+                };
+            } else {
+                // Removing a new file
+                const newFileIndex = index - existingCount;
+                const updatedNewFiles = newFiles.value.filter((_, i) => i !== newFileIndex);
+                newData = {
+                    existingImages: existingImages.value,
+                    newFiles: updatedNewFiles,
+                    deletedImages: deletedImages.value,
+                    allFiles: [...existingImages.value, ...updatedNewFiles],
+                };
+            }
+
+            setComponentData(newData);
 
             emit('trigger-event', {
                 name: 'change',
-                event: { value: updatedFiles },
+                event: { value: newData },
             });
         };
 
         const reorderFiles = (fromIndex, toIndex) => {
             if (isDisabled.value || isReadonly.value || !reorder.value) return;
 
-            const newFiles = [...files.value];
-            const [movedItem] = newFiles.splice(fromIndex, 1);
-            newFiles.splice(toIndex, 0, movedItem);
-            setFiles(newFiles);
+            // Combine all files for reordering
+            const combinedFiles = [...existingImages.value, ...newFiles.value];
+            const [movedItem] = combinedFiles.splice(fromIndex, 1);
+            combinedFiles.splice(toIndex, 0, movedItem);
+
+            // Split back into existing and new (based on whether they have File properties)
+            const reorderedExisting = [];
+            const reorderedNew = [];
+            for (const file of combinedFiles) {
+                if (file instanceof File || file.lastModified) {
+                    reorderedNew.push(file);
+                } else {
+                    reorderedExisting.push(file);
+                }
+            }
+
+            const newData = {
+                existingImages: reorderedExisting,
+                newFiles: reorderedNew,
+                deletedImages: deletedImages.value,
+                allFiles: combinedFiles,
+            };
+            setComponentData(newData);
 
             emit('trigger-event', {
                 name: 'change',
-                event: { value: newFiles },
+                event: { value: newData },
             });
         };
 
         const clearFiles = () => {
-            setFiles([]);
+            const newData = {
+                existingImages: [],
+                newFiles: [],
+                deletedImages: [...deletedImages.value, ...existingImages.value],
+                allFiles: [],
+            };
+            setComponentData(newData);
         };
 
         const clearError = () => {

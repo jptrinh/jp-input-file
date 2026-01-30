@@ -4,6 +4,8 @@ export default {
         icon: 'upload',
         bubble: { icon: 'upload' },
         customSettingsPropertiesOrder: [
+            // Initial state
+            'initialValue',
             // UX properties
             'type',
             'drop',
@@ -117,6 +119,24 @@ export default {
             bindingValidation: {
                 type: 'array',
                 tooltip: 'Array of elements to display in the dropzone area',
+            },
+            /* wwEditor:end */
+        },
+
+        // ======== INITIAL STATE ========
+        initialValue: {
+            label: { en: 'Initial value' },
+            type: 'Array',
+            section: 'settings',
+            bindable: true,
+            defaultValue: [],
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'array',
+                tooltip: 'Array of existing items to initialize the component with',
+            },
+            propertyHelp: {
+                tooltip: 'Bind an array of existing items. These will be tracked separately from new uploads.',
             },
             /* wwEditor:end */
         },
