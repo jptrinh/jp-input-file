@@ -32,7 +32,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, provide, inject } from 'vue';
+import { ref, computed, watch, inject } from 'vue';
 import { validateFile } from './utils/fileValidation';
 import { fileToBase64, fileToBinary } from './utils/fileProcessing';
 
@@ -130,8 +130,6 @@ export default {
         const existingImages = computed(() => componentData.value?.existingImages || []);
         const newFiles = computed(() => componentData.value?.newFiles || []);
         const deletedImages = computed(() => componentData.value?.deletedImages || []);
-        const allFiles = computed(() => componentData.value?.allFiles || []);
-
         // Track the last initialValue to avoid unnecessary resets
         const lastInitialValue = ref(null);
 
@@ -247,20 +245,6 @@ export default {
                 status: status,
                 error: lastError,
             },
-        });
-
-        provide('_wwFileUpload', {
-            files: fileList,
-            existingImages,
-            newFiles,
-            deletedImages,
-            allFiles,
-            status: status,
-            acceptedTypes: acceptedFileTypes,
-            isDisabled,
-            isReadonly,
-            isSingleMode: computed(() => type.value === 'single'),
-            content: computed(() => props.content || {}),
         });
 
         // Drag and drop handlers
