@@ -117,9 +117,9 @@ export default {
             uid: props.uid,
             name: 'value',
             defaultValue: {
-                existingImages: [],
+                existingFiles: [],
                 newFiles: [],
-                deletedImages: [],
+                deletedFiles: [],
                 allFiles: [],
             },
             type: 'object',
@@ -127,13 +127,13 @@ export default {
         });
 
         // Helper to safely get component data parts
-        const existingImages = computed(() => componentData.value?.existingImages || []);
+        const existingFiles = computed(() => componentData.value?.existingFiles || []);
         const newFiles = computed(() => componentData.value?.newFiles || []);
-        const deletedImages = computed(() => componentData.value?.deletedImages || []);
+        const deletedFiles = computed(() => componentData.value?.deletedFiles || []);
         // Track the last initialValue to avoid unnecessary resets
         const lastInitialValue = ref(null);
 
-        // Watch for initialValue changes and reset existingImages only when it actually changes
+        // Watch for initialValue changes and reset existingFiles only when it actually changes
         watch(
             () => props.content?.initialValue,
             newInitialValue => {
@@ -144,9 +144,9 @@ export default {
                 if (serialized !== lastInitialValue.value) {
                     lastInitialValue.value = serialized;
                     setComponentData({
-                        existingImages: initialArray,
+                        existingFiles: initialArray,
                         newFiles: [],
-                        deletedImages: [],
+                        deletedFiles: [],
                         allFiles: initialArray,
                     });
                 }
@@ -175,7 +175,7 @@ export default {
         );
 
         // Combined list of all files (existing + new) for display purposes
-        const fileList = computed(() => [...existingImages.value, ...newFiles.value]);
+        const fileList = computed(() => [...existingFiles.value, ...newFiles.value]);
         const hasFiles = computed(() => fileList.value.length > 0);
 
         watch([status, fileList], ([newStatus, allFiles]) => {
@@ -238,10 +238,10 @@ export default {
 
         const localData = ref({
             fileUpload: {
-                existingImages: computed(() => existingImages.value),
+                existingFiles: computed(() => existingFiles.value),
                 newFiles: computed(() => newFiles.value.map(serializeFile)),
-                deletedImages: computed(() => deletedImages.value),
-                allFiles: computed(() => [...existingImages.value, ...newFiles.value.map(serializeFile)]),
+                deletedFiles: computed(() => deletedFiles.value),
+                allFiles: computed(() => [...existingFiles.value, ...newFiles.value.map(serializeFile)]),
                 status: status,
                 error: lastError,
             },
@@ -308,17 +308,17 @@ export default {
 
                 filesToProcess.splice(1);
                 // Clear existing files when in single mode
-                const updatedDeletedImages = [...deletedImages.value, ...existingImages.value];
+                const updatedDeletedImages = [...deletedFiles.value, ...existingFiles.value];
                 setComponentData({
-                    existingImages: [],
+                    existingFiles: [],
                     newFiles: [],
-                    deletedImages: updatedDeletedImages,
+                    deletedFiles: updatedDeletedImages,
                     allFiles: [],
                 });
             }
 
             let availableSlots = Infinity;
-            const currentFileCount = existingImages.value.length + newFiles.value.length;
+            const currentFileCount = existingFiles.value.length + newFiles.value.length;
             if (type.value === 'multi' && maxFiles.value > 0) {
                 availableSlots = maxFiles.value - currentFileCount;
                 if (availableSlots <= 0) {
@@ -452,9 +452,9 @@ export default {
             if (processedFiles.length > 0) {
                 if (type.value === 'single') {
                     const newData = {
-                        existingImages: [],
+                        existingFiles: [],
                         newFiles: processedFiles,
-                        deletedImages: [...deletedImages.value, ...existingImages.value],
+                        deletedFiles: [...deletedFiles.value, ...existingFiles.value],
                         allFiles: processedFiles,
                     };
                     setComponentData(newData);
@@ -469,10 +469,10 @@ export default {
                     const addNextFile = index => {
                         updatedNewFiles = [...updatedNewFiles, processedFiles[index]];
                         const newData = {
-                            existingImages: existingImages.value,
+                            existingFiles: existingFiles.value,
                             newFiles: updatedNewFiles,
-                            deletedImages: deletedImages.value,
-                            allFiles: [...existingImages.value, ...updatedNewFiles],
+                            deletedFiles: deletedFiles.value,
+                            allFiles: [...existingFiles.value, ...updatedNewFiles],
                         };
                         setComponentData(newData);
 
@@ -495,17 +495,17 @@ export default {
         const removeFile = index => {
             if (isDisabled.value || isReadonly.value) return;
 
-            const existingCount = existingImages.value.length;
+            const existingCount = existingFiles.value.length;
             let newData;
 
             if (index < existingCount) {
-                // Removing an existing image - add to deletedImages
-                const removedImage = existingImages.value[index];
-                const updatedExisting = existingImages.value.filter((_, i) => i !== index);
+                // Removing an existing image - add to deletedFiles
+                const removedImage = existingFiles.value[index];
+                const updatedExisting = existingFiles.value.filter((_, i) => i !== index);
                 newData = {
-                    existingImages: updatedExisting,
+                    existingFiles: updatedExisting,
                     newFiles: newFiles.value,
-                    deletedImages: [...deletedImages.value, removedImage],
+                    deletedFiles: [...deletedFiles.value, removedImage],
                     allFiles: [...updatedExisting, ...newFiles.value],
                 };
             } else {
@@ -513,10 +513,10 @@ export default {
                 const newFileIndex = index - existingCount;
                 const updatedNewFiles = newFiles.value.filter((_, i) => i !== newFileIndex);
                 newData = {
-                    existingImages: existingImages.value,
+                    existingFiles: existingFiles.value,
                     newFiles: updatedNewFiles,
-                    deletedImages: deletedImages.value,
-                    allFiles: [...existingImages.value, ...updatedNewFiles],
+                    deletedFiles: deletedFiles.value,
+                    allFiles: [...existingFiles.value, ...updatedNewFiles],
                 };
             }
 
@@ -532,7 +532,7 @@ export default {
             if (isDisabled.value || isReadonly.value || !reorder.value) return;
 
             // Combine all files for reordering
-            const combinedFiles = [...existingImages.value, ...newFiles.value];
+            const combinedFiles = [...existingFiles.value, ...newFiles.value];
             const [movedItem] = combinedFiles.splice(fromIndex, 1);
             combinedFiles.splice(toIndex, 0, movedItem);
 
@@ -548,9 +548,9 @@ export default {
             }
 
             const newData = {
-                existingImages: reorderedExisting,
+                existingFiles: reorderedExisting,
                 newFiles: reorderedNew,
-                deletedImages: deletedImages.value,
+                deletedFiles: deletedFiles.value,
                 allFiles: combinedFiles,
             };
             setComponentData(newData);
@@ -563,9 +563,9 @@ export default {
 
         const clearFiles = () => {
             const newData = {
-                existingImages: [],
+                existingFiles: [],
                 newFiles: [],
-                deletedImages: [...deletedImages.value, ...existingImages.value],
+                deletedFiles: [...deletedFiles.value, ...existingFiles.value],
                 allFiles: [],
             };
             setComponentData(newData);
