@@ -679,6 +679,10 @@ export default {
         height: 1px;
         left: 0;
         outline: none;
+        // iOS WebKit draws the native "Choose File" control at its own size, ignoring
+        // font-size: 0. It spills past the input's box and widens the page, which
+        // in-app browsers (WKWebView) then zoom out to fit: blank strip on the right.
+        overflow: hidden;
         padding: 0;
         position: absolute;
         right: 0;
